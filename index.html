@@ -1,0 +1,2438 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulator Op-Amp Integrator — Percobaan 4</title>
+<style>
+/* ============ RESET & BASE ============ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #ffffff;
+  --bg-section: #f8fafc;
+  --card: #ffffff;
+  --panel-inner: #f8fafc;
+  --header-fill: #1e3a5f;
+  --border: #cbd5e1;
+  --accent: #0891b2;
+  --accent-2: #0284c7;
+  --text-primary: #0f172a;
+  --text-muted: #64748b;
+  --led-red: #dc2626;
+  --led-bg: #1a0808;
+  --led-bezel: #3f0808;
+  --led-caption: #991b1b;
+  --wire: #334155;
+  --green: #16a34a;
+  --amber: #d97706;
+  --maxw: 1180px;
+}
+html, body {
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+body { padding: 0 0 60px 0; }
+.container { max-width: var(--maxw); margin: 0 auto; padding: 20px 24px; }
+.mono { font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace; }
+
+/* ============ HEADER ============ */
+.app-header {
+  background: var(--bg-section);
+  border-bottom: 1px solid var(--border);
+  padding: 0;
+  position: sticky; top: 0; z-index: 50;
+  box-shadow: 0 2px 8px rgba(15,23,42,0.08);
+}
+.app-header .inner {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex; align-items: center; gap: 14px;
+}
+.app-header .accent-bar {
+  width: 4px; height: 44px; background: var(--accent); border-radius: 2px;
+}
+.app-header h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.4px; color: var(--text-primary); }
+.app-header .subtitle { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+.app-header .badge {
+  margin-left: auto;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 4px 10px; border-radius: 12px;
+  background: rgba(8,145,178,0.08);
+}
+
+/* ============ TAB NAVIGATION ============ */
+.tab-nav {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+.tab-btn {
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  border-bottom: 3px solid transparent;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.tab-btn:hover { color: var(--text-primary); background: rgba(8,145,178,0.06); }
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  background: rgba(8,145,178,0.06);
+}
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ============ SECTION ============ */
+.section {
+  margin-top: 20px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 24px 28px;
+  box-shadow: 0 1px 4px rgba(15,23,42,0.06);
+}
+.section h2 {
+  font-size: 16px; font-weight: 700; color: var(--accent);
+  margin-bottom: 6px; letter-spacing: 0.3px;
+}
+.section .subtitle { font-size: 12px; color: var(--text-muted); margin-bottom: 18px; }
+.section h3 {
+  font-size: 13.5px; font-weight: 600; color: var(--text-primary);
+  margin-top: 18px; margin-bottom: 8px;
+}
+
+/* ============ TIME CONTROL ============ */
+.time-control {
+  background: #f0f9fa;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-bottom: 18px;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+}
+.time-control .time-label {
+  font-size: 12px; font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.time-control .time-display {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 28px; font-weight: 700;
+  color: var(--accent);
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 18px;
+  min-width: 160px;
+  text-align: center;
+  letter-spacing: 2px;
+}
+.time-control .time-display.running { color: var(--green); border-color: var(--green); }
+.time-control .time-display.paused { color: var(--amber); border-color: var(--amber); }
+.time-control .btn-group { display: flex; gap: 8px; margin-left: auto; }
+.time-btn {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 8px 18px;
+  border-radius: 4px;
+  font-size: 12.5px; font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.time-btn:hover { background: var(--panel-inner); }
+.time-btn.primary { border-color: var(--green); color: var(--green); }
+.time-btn.primary:hover { background: rgba(22,163,74,0.12); }
+.time-btn.warn { border-color: var(--amber); color: var(--amber); }
+.time-btn.warn:hover { background: rgba(217,119,6,0.12); }
+.time-btn.danger { border-color: var(--led-red); color: var(--led-red); }
+.time-btn.danger:hover { background: rgba(220,38,38,0.12); }
+.time-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ============ CIRCUIT CARD ============ */
+.circuit-card {
+  background: var(--panel-inner);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px;
+  margin-bottom: 18px;
+}
+.circuit-card svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 380px;
+}
+
+/* ============ GRID PANELS ============ */
+.panels-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+@media (max-width: 720px) {
+  .panels-grid { grid-template-columns: 1fr; }
+}
+.panel {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px 18px 16px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15,23,42,0.04);
+}
+.panel::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+}
+.panel.opamp1::before { background: var(--accent); }
+.panel.opamp2::before { background: var(--accent-2); }
+.panel h3 {
+  font-size: 13px; font-weight: 700; color: var(--text-primary);
+  margin: 0 0 2px 8px;
+}
+.panel .panel-sub {
+  font-size: 11px; color: var(--text-muted); margin: 0 0 12px 8px;
+}
+.input-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px dashed rgba(148,163,184,0.4);
+}
+.input-row:last-child { border-bottom: none; }
+.input-row label {
+  flex: 0 0 60px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700; font-size: 12.5px;
+  color: var(--text-primary);
+  text-align: right;
+}
+.input-row label.eq::after { content: ' ='; color: var(--text-muted); font-weight: 400; }
+.input-row input[type="number"] {
+  flex: 1 1 auto;
+  width: 100%;
+  background: #ffffff;
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 7px 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.input-row input[type="number"]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(8,145,178,0.2);
+}
+.input-row input[type="number"]::-webkit-outer-spin-button,
+.input-row input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none; margin: 0;
+}
+.input-row input[type="number"] { -moz-appearance: textfield; }
+.input-row .unit {
+  flex: 0 0 auto;
+  font-size: 12px; color: var(--text-muted);
+  font-style: italic; min-width: 30px;
+}
+
+/* ============ DIGITAL VOUT DISPLAY (TWO OUTPUTS) ============ */
+.vout-display-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+@media (max-width: 720px) {
+  .vout-display-grid { grid-template-columns: 1fr; }
+}
+.vout-display {
+  background: var(--led-bg);
+  border: 1.5px solid var(--led-red);
+  border-radius: 8px;
+  padding: 14px 16px;
+  position: relative;
+  display: flex; align-items: center; gap: 12px;
+  box-shadow: inset 0 0 24px rgba(220,38,38,0.18), 0 2px 6px rgba(0,0,0,0.1);
+}
+.vout-display::before {
+  content: attr(data-caption);
+  position: absolute; top: 5px; left: 12px;
+  font-size: 7.5px; font-weight: 700; letter-spacing: 1px;
+  color: var(--led-caption);
+}
+.vout-display .vout-label {
+  flex: 0 0 auto;
+  font-size: 13px; font-weight: 700;
+  color: var(--led-red);
+  margin-top: 6px;
+  white-space: nowrap;
+}
+.vout-display .vout-value {
+  flex: 1 1 auto;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 700;
+  font-size: 32px;
+  color: var(--led-red);
+  text-align: center;
+  text-shadow: 0 0 10px rgba(220,38,38,0.6);
+  letter-spacing: 1.5px;
+  margin-top: 4px;
+  line-height: 1;
+}
+.vout-display .vout-status {
+  flex: 0 0 auto;
+  min-width: 90px;
+  text-align: center;
+}
+.vout-display .status-label {
+  font-size: 7.5px; font-weight: 700; letter-spacing: 1px;
+  color: var(--led-caption);
+  margin-bottom: 3px;
+}
+.vout-display .status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.3px;
+  font-family: 'JetBrains Mono', monospace;
+  border: 1px solid currentColor;
+  background: rgba(0,0,0,0.3);
+}
+.vout-display .status-badge.normal { color: var(--green); }
+.vout-display .status-badge.sat-pos, .vout-display .status-badge.sat-neg { color: var(--led-red); }
+.vout-display .status-badge.error { color: var(--amber); }
+
+/* ============ CALC BREAKDOWN ============ */
+.calc-breakdown {
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+.calc-breakdown .step { margin-bottom: 4px; }
+.calc-breakdown .step b { color: var(--accent); font-weight: 700; }
+.calc-breakdown .step .val { color: var(--text-primary); font-weight: 700; }
+
+/* ============ NOTE ============ */
+.note {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  background: #f8fafc;
+  padding: 10px 14px;
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  margin-top: 12px;
+  line-height: 1.6;
+}
+.note b { color: var(--text-primary); }
+
+/* ============ FOOTER ============ */
+.app-footer {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 30px 0 0 0;
+  border-top: 1px solid var(--border);
+  margin-top: 40px;
+}
+
+/* ============ TOAST ============ */
+.toast {
+  position: fixed;
+  bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: #ffffff;
+  border: 1px solid var(--accent);
+  color: var(--text-primary);
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 12px;
+  box-shadow: 0 6px 20px rgba(15,23,42,0.15);
+  opacity: 0;
+  transition: all 0.25s ease-out;
+  pointer-events: none;
+  z-index: 100;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+</style>
+</head>
+<body>
+
+<!-- ============ HEADER ============ -->
+<header class="app-header">
+  <div class="inner">
+    <div class="accent-bar"></div>
+    <div>
+      <h1>SIMULATOR OP-AMP — PERCOBAAN 4 (INTEGRATOR)</h1>
+      <div class="subtitle">Modul Praktikum OP-Amp Simulide · Percobaan 4 · Dua Op-Amp Seri (Proporsional &amp; Integrator) · Time-step Simulator</div>
+    </div>
+    <div class="badge">LIVE INTERACTIVE</div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- ============ TAB NAVIGATION ============ -->
+  <div class="tab-nav">
+    <button class="tab-btn active" data-tab="tab-4-1">Percobaan 4.1 — Proporsional Seri</button>
+    <button class="tab-btn" data-tab="tab-4-2">Percobaan 4.2 — Integrator + Proporsional</button>
+  </div>
+
+  <!-- ============ TAB 1: PERCOBAAN 4.1 ============ -->
+  <div id="tab-4-1" class="tab-panel active">
+    <section class="section">
+      <h2>Percobaan 4.1 — Dua Op-Amp Inverting Proporsional Seri</h2>
+      <div class="subtitle">Vin → Op-Amp 1 (penguat proporsional 1) → Op-Amp 2 (penguat proporsional 2) → Vout. Output konstan terhadap waktu.</div>
+
+      <!-- TIME CONTROL -->
+      <div class="time-control">
+        <span class="time-label">Waktu Simulasi</span>
+        <span class="time-display" id="time-4-1">00:00:00</span>
+        <div class="btn-group">
+          <button class="time-btn primary" id="start-4-1">▶ Start</button>
+          <button class="time-btn warn" id="pause-4-1" disabled>⏸ Pause</button>
+          <button class="time-btn" id="step-4-1">⏭ Step +1s</button>
+          <button class="time-btn danger" id="reset-4-1">↺ Reset</button>
+        </div>
+      </div>
+
+      <!-- CIRCUIT SVG -->
+      <div class="circuit-card">
+       <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   id="circuit-4-1"
+   viewBox="0 0 800.79999 340.79999"
+   version="1.1"
+   sodipodi:docname="prop.svg"
+   width="800.79999"
+   height="340.79999"
+   inkscape:version="1.4 (e7c3feb100, 2024-10-09)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs37" />
+  <sodipodi:namedview
+     id="namedview37"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="2.0775"
+     inkscape:cx="393.26113"
+     inkscape:cy="170.63779"
+     inkscape:window-width="1820"
+     inkscape:window-height="1032"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="circuit-4-1" />
+  <!-- background -->
+  <rect
+     x="0.40000001"
+     y="0.40000001"
+     width="800"
+     height="340"
+     fill="#f8fafc"
+     stroke="#cbd5e1"
+     stroke-width="0.8"
+     id="rect1"
+     sodipodi:insensitive="true" />
+  <rect
+     x="8.3999996"
+     y="8.3999996"
+     width="784"
+     height="324"
+     fill="#ffffff"
+     id="rect2"
+     sodipodi:insensitive="true" />
+  <!-- title -->
+  <text
+     x="421.57208"
+     y="20.915043"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="11px"
+     font-weight="700"
+     fill="#0f172a"
+     id="text2">Percobaan 4.1 — Dua Op-Amp Inverting Proporsional Seri</text>
+  <!-- ===== Vin source (left) ===== -->
+  <text
+     x="40.881348"
+     y="107.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="9px"
+     fill="#64748b"
+     id="vin1-label-4-1">5V</text>
+  <circle
+     cx="40.881348"
+     cy="122.39278"
+     r="22"
+     fill="#ffffff"
+     stroke="#0891b2"
+     stroke-width="1.6"
+     id="circle2" />
+  <text
+     x="40.881348"
+     y="117.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="10px"
+     font-weight="700"
+     fill="#0891b2"
+     id="text3">+</text>
+  <text
+     x="40.881348"
+     y="131.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="10px"
+     font-weight="700"
+     fill="#0f172a"
+     id="text4">Vin</text>
+  <!-- Vin ground (below, facing DOWN) -->
+  <line
+     x1="40.881348"
+     y1="144.39278"
+     x2="40.881348"
+     y2="152.39278"
+     stroke="#334155"
+     stroke-width="1.2"
+     id="line4" />
+  <line
+     x1="32.881348"
+     y1="152.39278"
+     x2="48.881348"
+     y2="152.39278"
+     stroke="#334155"
+     stroke-width="1.4"
+     id="line5" />
+  <line
+     x1="35.881348"
+     y1="156.39278"
+     x2="45.881348"
+     y2="156.39278"
+     stroke="#334155"
+     stroke-width="1.2"
+     id="line6" />
+  <line
+     x1="38.881348"
+     y1="160.39278"
+     x2="42.881348"
+     y2="160.39278"
+     stroke="#334155"
+     stroke-width="1"
+     id="line7" />
+  <!-- ===== wire from Vin to R1 ===== -->
+  <line
+     x1="62.881348"
+     y1="122.39278"
+     x2="100.88135"
+     y2="122.39278"
+     stroke="#334155"
+     stroke-width="1.2"
+     id="line8" />
+  <!-- ===== R1 zigzag (input resistor of opamp 1) ===== -->
+  <polyline
+     points="100,70 110,70 118,62 126,78 134,62 142,78 150,62 158,78 166,62 174,78 182,62 190,70 200,70"
+     fill="none"
+     stroke="#334155"
+     stroke-width="1.4"
+     stroke-linecap="round"
+     id="polyline8"
+     transform="translate(0.88134778,52.39278)" />
+  <text
+     x="150.88135"
+     y="102.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="10px"
+     font-weight="700"
+     fill="#0f172a"
+     id="text8">R1</text>
+  <text
+     x="150.88135"
+     y="144.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="8.5px"
+     fill="#64748b"
+     id="r1-label-4-1">1 kΩ</text>
+  <!-- ===== wire from R1 to opamp1 inverting input ===== -->
+  <line
+     x1="200.88135"
+     y1="122.39278"
+     x2="250.88135"
+     y2="122.39278"
+     stroke="#334155"
+     stroke-width="1.4"
+     id="line9" />
+  <!-- ===== Op-Amp 1 triangle ===== -->
+  <polygon
+     points="250,165 340,110 250,55 "
+     fill="#ffffff"
+     stroke="#0891b2"
+     stroke-width="1.8"
+     id="polygon9"
+     transform="translate(0.88134778,52.39278)" />
+  <text
+     x="258.88135"
+     y="127.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="14px"
+     font-weight="700"
+     fill="#dc2626"
+     id="text9">−</text>
+  <text
+     x="258.88135"
+     y="204.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="14px"
+     font-weight="700"
+     fill="#0891b2"
+     id="text10">+</text>
+  <text
+     x="295.88135"
+     y="165.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="8.5px"
+     font-weight="700"
+     fill="#64748b"
+     id="text11">OP-AMP 1</text>
+  <!-- ===== inverting input wire junction dot ===== -->
+  <circle
+     cx="214.88857"
+     cy="122.39278"
+     r="3.5"
+     fill="#1e3a5f"
+     id="circle11" />
+  <!-- junction where Rf1 feedback meets inverting input wire at (240, 70) -->
+  <!-- ===== non-inverting input 1 to ground (below op-amp 1) ===== -->
+  <line
+     x1="224.88135"
+     y1="197.39278"
+     x2="224.88135"
+     y2="212.39278"
+     stroke="#334155"
+     stroke-width="1.4"
+     id="line11" />
+  <!-- ground symbol below op-amp 1, facing DOWN -->
+  <line
+     x1="216.88135"
+     y1="212.39278"
+     x2="232.88135"
+     y2="212.39278"
+     stroke="#334155"
+     stroke-width="1.4"
+     id="line12" />
+  <line
+     x1="219.88135"
+     y1="216.39278"
+     x2="229.88135"
+     y2="216.39278"
+     stroke="#334155"
+     stroke-width="1.2"
+     id="line13" />
+  <line
+     x1="222.88135"
+     y1="220.39278"
+     x2="226.88135"
+     y2="220.39278"
+     stroke="#334155"
+     stroke-width="1"
+     id="line14" />
+  <!-- ===== V+ and V- supply pins for opamp 1 ===== -->
+  <line
+     x1="301.09991"
+     y1="188.39278"
+     x2="301.09991"
+     y2="211.91504"
+     stroke="#0891b2"
+     stroke-width="0.956797"
+     id="line15" />
+  <text
+     x="287.88135"
+     y="220.39278"
+     font-family="Inter, sans-serif"
+     font-size="8px"
+     font-weight="700"
+     fill="#0891b2"
+     id="text15">V+ = +15V</text>
+  <line
+     x1="300.88135"
+     y1="136.39278"
+     x2="300.88135"
+     y2="109.01974"
+     stroke="#0284c7"
+     stroke-width="1.03215"
+     id="line16" />
+  <text
+     x="287.88135"
+     y="106.39278"
+     font-family="Inter, sans-serif"
+     font-size="8px"
+     font-weight="700"
+     fill="#0284c7"
+     id="text16">V− = −15V</text>
+  <!-- ===== Rf1 feedback resistor (top routing) ===== -->
+  <!-- from opamp1 output (340, 110) up to (340, 30), then left to (240, 30), then down to (240, 70) -->
+  <line
+     x1="359.80313"
+     y1="161.83682"
+     x2="359.80313"
+     y2="81.836823"
+     stroke="#334155"
+     stroke-width="1.4"
+     id="line17" />
+  <line
+     x1="359.17258"
+     y1="82.392776"
+     x2="288.95599"
+     y2="82.392776"
+     stroke="#334155"
+     stroke-width="1.65906"
+     id="line18" />
+  <line
+     x1="241.99158"
+     y1="82.355881"
+     x2="215.09627"
+     y2="82.355881"
+     stroke="#334155"
+     stroke-width="1.02679"
+     id="line18-7" />
+  <line
+     x1="250.70517"
+     y1="196.87201"
+     x2="223.80986"
+     y2="196.87201"
+     stroke="#334155"
+     stroke-width="1.02679"
+     id="line18-7-9" />
+  <!-- Rf1 zigzag from (290, 30) to (240, 30) - going left, but we'll draw left-to-right and the path looks the same -->
+  <polyline
+     points="240,30 250,30 258,22 266,38 274,22 282,38 290,30"
+     fill="none"
+     stroke="#334155"
+     stroke-width="1.4"
+     stroke-linecap="round"
+     id="polyline18"
+     transform="translate(0.88134778,52.39278)" />
+  <text
+     x="270.69482"
+     y="60.653912"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="10px"
+     font-weight="700"
+     fill="#0f172a"
+     id="text18">Rf-1</text>
+  <text
+     x="270.14609"
+     y="69.280869"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="8.5px"
+     fill="#64748b"
+     id="rf1-label-4-1">1 kΩ</text>
+  <!-- continue down from (240, 30) to (240, 70) -->
+  <line
+     x1="215.36992"
+     y1="82.87413"
+     x2="215.36992"
+     y2="120.94874"
+     stroke="#334155"
+     stroke-width="1.36589"
+     id="line19" />
+  <!-- ===== wire from opamp1 output (340, 110) to R2 ===== -->
+  <line
+     x1="340.88135"
+     y1="162.39278"
+     x2="386.76584"
+     y2="162.39278"
+     stroke="#334155"
+     stroke-width="1.73141"
+     id="line20" />
+  <!-- Vout1 voltmeter (intermediate output) -->
+  <g
+     id="g37"
+     transform="translate(16,26)">
+    <rect
+       x="370.88135"
+       y="121.39278"
+       width="35"
+       height="30"
+       fill="#ffffff"
+       stroke="#0891b2"
+       stroke-width="1.4"
+       id="rect20" />
+    <text
+       x="387.88135"
+       y="141.39278"
+       text-anchor="middle"
+       font-family="Inter, sans-serif"
+       font-size="11px"
+       font-weight="700"
+       fill="#0891b2"
+       id="text20">V1</text>
+    <text
+       x="387.88135"
+       y="131.39278"
+       text-anchor="middle"
+       font-family="Inter, sans-serif"
+       font-size="6px"
+       fill="#64748b"
+       id="text21">Vout1</text>
+  </g>
+  <!-- wire from V1 voltmeter to R2 -->
+  <line
+     x1="421.28448"
+     y1="162.39278"
+     x2="440.88135"
+     y2="162.39278"
+     stroke="#334155"
+     stroke-width="1.04758"
+     id="line21" />
+  <!-- bend down then right to align R2 at y=110 -->
+  <!-- Actually keep at y=110 for straight horizontal flow -->
+  <!-- ===== R2 zigzag (input resistor of opamp 2) ===== -->
+  <polyline
+     points="440,110 450,110 458,102 466,118 474,102 482,118 490,102 498,118 506,102 514,118 522,102 530,110 540,110"
+     fill="none"
+     stroke="#334155"
+     stroke-width="1.4"
+     stroke-linecap="round"
+     id="polyline21"
+     transform="translate(0.88134778,52.39278)" />
+  <text
+     x="490.88135"
+     y="144.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="10px"
+     font-weight="700"
+     fill="#0f172a"
+     id="text22">R2</text>
+  <text
+     x="490.88135"
+     y="184.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="8.5px"
+     fill="#64748b"
+     id="r2-label-4-1">1 kΩ</text>
+  <!-- wire from R2 to opamp2 inverting input -->
+  <line
+     x1="540.88135"
+     y1="162.39278"
+     x2="590.88135"
+     y2="162.39278"
+     stroke="#334155"
+     stroke-width="1.4"
+     id="line22" />
+  <!-- ===== Op-Amp 2 triangle ===== -->
+  <polygon
+     points="590,205 680,150 590,95 "
+     fill="#ffffff"
+     stroke="#0891b2"
+     stroke-width="1.8"
+     id="polygon22"
+     transform="translate(0.88134778,52.39278)" />
+  <text
+     x="598.88135"
+     y="167.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="14px"
+     font-weight="700"
+     fill="#dc2626"
+     id="text23">−</text>
+  <text
+     x="598.88135"
+     y="244.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="14px"
+     font-weight="700"
+     fill="#0891b2"
+     id="text24">+</text>
+  <text
+     x="635.88135"
+     y="205.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="8.5px"
+     font-weight="700"
+     fill="#64748b"
+     id="text25">OP-AMP 2</text>
+  <!-- junction dot at opamp2 inverting input bus -->
+  <circle
+     cx="580.88135"
+     cy="162.39278"
+     r="3.5"
+     fill="#1e3a5f"
+     id="circle25" />
+  <!-- ===== non-inverting input 2 to ground (below op-amp 2) ===== -->
+  <g
+     id="g38"
+     transform="translate(-6,-14)">
+    <line
+       x1="570.88135"
+       y1="257.39276"
+       x2="570.88135"
+       y2="272.39276"
+       stroke="#334155"
+       stroke-width="1.4"
+       id="line25" />
+    <line
+       x1="562.88135"
+       y1="272.39276"
+       x2="578.88135"
+       y2="272.39276"
+       stroke="#334155"
+       stroke-width="1.4"
+       id="line26" />
+    <line
+       x1="565.88135"
+       y1="276.39276"
+       x2="575.88135"
+       y2="276.39276"
+       stroke="#334155"
+       stroke-width="1.2"
+       id="line27" />
+    <line
+       x1="568.88135"
+       y1="280.39276"
+       x2="572.88135"
+       y2="280.39276"
+       stroke="#334155"
+       stroke-width="1"
+       id="line28" />
+  </g>
+  <!-- ===== V+ and V- supply pins for opamp 2 ===== -->
+  <line
+     x1="640.88135"
+     y1="226.39278"
+     x2="640.88135"
+     y2="263.39276"
+     stroke="#0891b2"
+     stroke-width="1.2"
+     id="line29" />
+  <text
+     x="629.88135"
+     y="272.39276"
+     font-family="Inter, sans-serif"
+     font-size="8px"
+     font-weight="700"
+     fill="#0891b2"
+     id="text29">V+ = +15V</text>
+  <line
+     x1="640.88135"
+     y1="180.39278"
+     x2="640.88135"
+     y2="143.39278"
+     stroke="#0284c7"
+     stroke-width="1.2"
+     id="line30" />
+  <text
+     x="623.33264"
+     y="136.5083"
+     font-family="Inter, sans-serif"
+     font-size="8px"
+     font-weight="700"
+     fill="#0284c7"
+     id="text30">V− = −15V</text>
+  <!-- ===== Rf2 feedback resistor (top routing) ===== -->
+  <line
+     x1="680.88135"
+     y1="202.39278"
+     x2="680.88135"
+     y2="102.39278"
+     stroke="#334155"
+     stroke-width="1.4"
+     id="line31" />
+  <line
+     x1="680.88135"
+     y1="102.39278"
+     x2="647.24719"
+     y2="102.39278"
+     stroke="#334155"
+     stroke-width="1.14824"
+     id="line32" />
+  <line
+     x1="595.87964"
+     y1="102.24199"
+     x2="581.01807"
+     y2="102.24199"
+     stroke="#334155"
+     stroke-width="0.763264"
+     id="line32-5" />
+  <!-- Rf2 zigzag from (630, 50) to (580, 50) -->
+  <polyline
+     points="580,50 590,50 598,42 606,58 614,42 622,58 630,50"
+     fill="none"
+     stroke="#334155"
+     stroke-width="1.4"
+     stroke-linecap="round"
+     id="polyline32"
+     transform="translate(16.881348,52.39278)" />
+  <text
+     x="605.88135"
+     y="69.582909"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="10px"
+     font-weight="700"
+     fill="#0f172a"
+     id="text32">Rf-2</text>
+  <text
+     x="603.95593"
+     y="81.40361"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="8.5px"
+     fill="#64748b"
+     id="rf2-label-4-1">1 kΩ</text>
+  <line
+     x1="580.88135"
+     y1="102.39278"
+     x2="580.88135"
+     y2="162.39278"
+     stroke="#334155"
+     stroke-width="1.4"
+     id="line33" />
+  <!-- ===== output wire to Vout voltmeter ===== -->
+  <line
+     x1="680.88135"
+     y1="202.39278"
+     x2="720.88135"
+     y2="202.39278"
+     stroke="#334155"
+     stroke-width="1.4"
+     id="line34" />
+  <rect
+     x="720.88135"
+     y="177.39278"
+     width="40"
+     height="50"
+     fill="#ffffff"
+     stroke="#0891b2"
+     stroke-width="1.4"
+     id="rect34" />
+  <text
+     x="740.88135"
+     y="206.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="14px"
+     font-weight="700"
+     fill="#0891b2"
+     id="text34">V</text>
+  <text
+     x="740.88135"
+     y="190.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="6.5px"
+     fill="#64748b"
+     id="text35">Vout2</text>
+  <!-- ===== Labels showing intermediate and final outputs ===== -->
+  <text
+     x="403.88135"
+     y="137.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="8px"
+     fill="#64748b"
+     id="text36">Vout1 (intermediate)</text>
+  <text
+     x="740.88135"
+     y="167.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="8px"
+     fill="#64748b"
+     id="text37">Vout2 (final)</text>
+  <line
+     x1="590.89532"
+     y1="242.5134"
+     x2="564"
+     y2="242.5134"
+     stroke="#334155"
+     stroke-width="1.02679"
+     id="line18-7-9-2" />
+</svg>
+
+      </div>
+
+      <!-- INPUT PANELS -->
+      <div class="panels-grid">
+        <div class="panel opamp1">
+          <h3>OP-AMP 1 (Kiri) — Proporsional</h3>
+          <div class="panel-sub">Penguat proporsional inverting pertama</div>
+          <div class="input-row">
+            <label class="eq">Vin</label>
+            <input type="number" id="Vin-4-1" value="5" step="0.1" min="-100" max="100">
+            <span class="unit">Volt</span>
+          </div>
+          <div class="input-row">
+            <label class="eq">R1</label>
+            <input type="number" id="R1-4-1" value="1" step="0.1" min="0.001" max="1000">
+            <span class="unit">kΩ</span>
+          </div>
+          <div class="input-row">
+            <label class="eq">Rf-1</label>
+            <input type="number" id="Rf1-4-1" value="1" step="0.1" min="0.001" max="1000">
+            <span class="unit">kΩ</span>
+          </div>
+        </div>
+        <div class="panel opamp2">
+          <h3>OP-AMP 2 (Kanan) — Proporsional</h3>
+          <div class="panel-sub">Penguat proporsional inverting kedua</div>
+          <div class="input-row">
+            <label class="eq">R2</label>
+            <input type="number" id="R2-4-1" value="1" step="0.1" min="0.001" max="1000">
+            <span class="unit">kΩ</span>
+          </div>
+          <div class="input-row">
+            <label class="eq">Rf-2</label>
+            <input type="number" id="Rf2-4-1" value="1" step="0.1" min="0.001" max="1000">
+            <span class="unit">kΩ</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIGITAL VOUT DISPLAYS -->
+      <div class="vout-display-grid">
+        <div class="vout-display" data-caption="VOUT1 — OP-AMP 1 OUTPUT">
+          <div class="vout-label">Vout1 =</div>
+          <div class="vout-value mono" id="vout1-4-1">-5.000</div>
+          <div class="vout-status">
+            <div class="status-label">STATUS</div>
+            <div class="status-badge normal" id="status1-4-1">NORMAL</div>
+          </div>
+        </div>
+        <div class="vout-display" data-caption="VOUT2 — FINAL OUTPUT">
+          <div class="vout-label">Vout2 =</div>
+          <div class="vout-value mono" id="vout2-4-1">+5.000</div>
+          <div class="vout-status">
+            <div class="status-label">STATUS</div>
+            <div class="status-badge normal" id="status2-4-1">NORMAL</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CALC BREAKDOWN -->
+      <div class="calc-breakdown" id="calc-4-1">
+        <div class="step"><b>Op-Amp 1 (inverting proportional):</b> Vout1 = −(Rf-1/R1) × Vin = <span class="val">-5.000 V</span></div>
+        <div class="step"><b>Op-Amp 2 (inverting proportional):</b> Vout2 = −(Rf-2/R2) × Vout1 = <span class="val">+5.000 V</span></div>
+        <div class="step"><b>Catatan:</b> Karena kedua op-amp proporsional murni, Vout1 dan Vout2 KONSTAN terhadap waktu.</div>
+      </div>
+
+      <div class="note">
+        <b>Cara pakai:</b> Set nilai Vin, R1, Rf-1 (op-amp 1) dan R2, Rf-2 (op-amp 2). Tekan <b>Start</b> untuk menjalankan waktu simulasi (bertambah 1 detik per detik nyata). Tekan <b>Pause</b> untuk menghentikan sementara agar dapat mencatat nilai Vout1 dan Vout2. Tekan <b>Step +1s</b> untuk maju 1 detik manual. Tekan <b>Reset</b> untuk kembali ke t=0. Supply Op-Amp V+ = +15V, V− = −15V (saturasi pada ±15V).
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ TAB 2: PERCOBAAN 4.2 ============ -->
+  <div id="tab-4-2" class="tab-panel">
+    <section class="section">
+      <h2>Percobaan 4.2 — Integrator + Proporsional Seri</h2>
+      <div class="subtitle">Vin → Op-Amp 1 (Penguat Integrator) → Op-Amp 2 (Penguat Proporsional) → Vout. Output Vout1 berubah terhadap waktu (exponential ramp), Vout2 = -(Rf2/R2)·Vout1.</div>
+
+      <!-- TIME CONTROL -->
+      <div class="time-control">
+        <span class="time-label">Waktu Simulasi</span>
+        <span class="time-display" id="time-4-2">00:00:00</span>
+        <div class="btn-group">
+          <button class="time-btn primary" id="start-4-2">▶ Start</button>
+          <button class="time-btn warn" id="pause-4-2" disabled>⏸ Pause</button>
+          <button class="time-btn" id="step-4-2">⏭ Step +1s</button>
+          <button class="time-btn danger" id="reset-4-2">↺ Reset</button>
+        </div>
+      </div>
+
+      <!-- CIRCUIT SVG for 4.2 -->
+      <div class="circuit-card">
+        <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   id="circuit-4-1"
+   viewBox="0 0 800.79999 340.79999"
+   version="1.1"
+   sodipodi:docname="integr-prop.svg"
+   width="800.79999"
+   height="340.79999"
+   inkscape:version="1.4 (e7c3feb100, 2024-10-09)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs37" />
+  <sodipodi:namedview
+     id="namedview37"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="2.0775"
+     inkscape:cx="380.26474"
+     inkscape:cy="124.4284"
+     inkscape:window-width="1820"
+     inkscape:window-height="1032"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="circuit-4-1" />
+  <!-- background -->
+  <rect
+     x="0.40000001"
+     y="0.40000001"
+     width="800"
+     height="340"
+     fill="#f8fafc"
+     stroke="#cbd5e1"
+     stroke-width="0.8"
+     id="rect1"
+     sodipodi:insensitive="true" />
+  <rect
+     x="8.3999996"
+     y="8.3999996"
+     width="784"
+     height="324"
+     fill="#ffffff"
+     id="rect2"
+     sodipodi:insensitive="true" />
+  <!-- title -->
+  <text
+     x="421.57208"
+     y="20.915043"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="11px"
+     font-weight="700"
+     fill="#0f172a"
+     id="text2">Percobaan 4.2 — Op-Amp Integrator (opamp 1) dan Op-Amp Poporsional (Op-Amp 2) Seri</text>
+  <!-- ===== Vin source (left) ===== -->
+  <text
+     x="40.881348"
+     y="121.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="9px"
+     fill="#64748b"
+     id="vin1-label-4-1">5V</text>
+  <circle
+     cx="40.881348"
+     cy="136.39278"
+     r="22"
+     fill="#ffffff"
+     stroke="#0891b2"
+     stroke-width="1.6"
+     id="circle2" />
+  <text
+     x="40.881348"
+     y="131.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="10px"
+     font-weight="700"
+     fill="#0891b2"
+     id="text3">+</text>
+  <text
+     x="40.881348"
+     y="145.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="10px"
+     font-weight="700"
+     fill="#0f172a"
+     id="text4">Vin</text>
+  <!-- Vin ground (below, facing DOWN) -->
+  <line
+     x1="40.881348"
+     y1="158.39278"
+     x2="40.881348"
+     y2="166.39278"
+     stroke="#334155"
+     stroke-width="1.2"
+     id="line4" />
+  <line
+     x1="32.881348"
+     y1="166.39278"
+     x2="48.881348"
+     y2="166.39278"
+     stroke="#334155"
+     stroke-width="1.4"
+     id="line5" />
+  <line
+     x1="35.881348"
+     y1="170.39278"
+     x2="45.881348"
+     y2="170.39278"
+     stroke="#334155"
+     stroke-width="1.2"
+     id="line6" />
+  <line
+     x1="38.881348"
+     y1="174.39278"
+     x2="42.881348"
+     y2="174.39278"
+     stroke="#334155"
+     stroke-width="1"
+     id="line7" />
+  <!-- ===== wire from Vin to R1 ===== -->
+  <line
+     x1="62.881348"
+     y1="136.39278"
+     x2="100.88135"
+     y2="136.39278"
+     stroke="#334155"
+     stroke-width="1.2"
+     id="line8" />
+  <!-- ===== R1 zigzag (input resistor of opamp 1) ===== -->
+  <polyline
+     points="100,70 110,70 118,62 126,78 134,62 142,78 150,62 158,78 166,62 174,78 182,62 190,70 200,70"
+     fill="none"
+     stroke="#334155"
+     stroke-width="1.4"
+     stroke-linecap="round"
+     id="polyline8"
+     transform="translate(0.88134778,66.39278)" />
+  <text
+     x="150.88135"
+     y="116.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="10px"
+     font-weight="700"
+     fill="#0f172a"
+     id="text8">R1</text>
+  <text
+     x="150.88135"
+     y="158.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="8.5px"
+     fill="#64748b"
+     id="r1-label-4-1">1 kΩ</text>
+  <!-- ===== wire from R1 to opamp1 inverting input ===== -->
+  <line
+     x1="200.88135"
+     y1="136.39278"
+     x2="250.88135"
+     y2="136.39278"
+     stroke="#334155"
+     stroke-width="1.4"
+     id="line9" />
+  <!-- ===== Op-Amp 1 triangle ===== -->
+  <polygon
+     points="340,110 250,55 250,165 "
+     fill="#ffffff"
+     stroke="#0891b2"
+     stroke-width="1.8"
+     id="polygon9"
+     transform="translate(0.88134778,66.39278)" />
+  <text
+     x="258.88135"
+     y="141.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="14px"
+     font-weight="700"
+     fill="#dc2626"
+     id="text9">−</text>
+  <text
+     x="258.88135"
+     y="218.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="14px"
+     font-weight="700"
+     fill="#0891b2"
+     id="text10">+</text>
+  <text
+     x="295.88135"
+     y="179.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="8.5px"
+     font-weight="700"
+     fill="#64748b"
+     id="text11">OP-AMP 1</text>
+  <!-- ===== inverting input wire junction dot ===== -->
+  <circle
+     cx="214.88857"
+     cy="136.39278"
+     r="3.5"
+     fill="#1e3a5f"
+     id="circle11" />
+  <circle
+     cx="359.6059"
+     cy="175.67209"
+     r="3.5"
+     fill="#1e3a5f"
+     id="circle11-9" />
+  <!-- junction where Rf1 feedback meets inverting input wire at (240, 70) -->
+  <!-- ===== non-inverting input 1 to ground (below op-amp 1) ===== -->
+  <line
+     x1="224.88135"
+     y1="211.39278"
+     x2="224.88135"
+     y2="226.39278"
+     stroke="#334155"
+     stroke-width="1.4"
+     id="line11" />
+  <!-- ground symbol below op-amp 1, facing DOWN -->
+  <line
+     x1="216.88135"
+     y1="226.39278"
+     x2="232.88135"
+     y2="226.39278"
+     stroke="#334155"
+     stroke-width="1.4"
+     id="line12" />
+  <line
+     x1="219.88135"
+     y1="230.39278"
+     x2="229.88135"
+     y2="230.39278"
+     stroke="#334155"
+     stroke-width="1.2"
+     id="line13" />
+  <line
+     x1="222.88135"
+     y1="234.39278"
+     x2="226.88135"
+     y2="234.39278"
+     stroke="#334155"
+     stroke-width="1"
+     id="line14" />
+  <!-- ===== V+ and V- supply pins for opamp 1 ===== -->
+  <line
+     x1="301.09991"
+     y1="202.39278"
+     x2="301.09991"
+     y2="225.91504"
+     stroke="#0891b2"
+     stroke-width="0.956797"
+     id="line15" />
+  <text
+     x="287.88135"
+     y="234.39278"
+     font-family="Inter, sans-serif"
+     font-size="8px"
+     font-weight="700"
+     fill="#0891b2"
+     id="text15">V+ = +15V</text>
+  <line
+     x1="300.88135"
+     y1="150.39278"
+     x2="300.88135"
+     y2="123.01974"
+     stroke="#0284c7"
+     stroke-width="1.03215"
+     id="line16" />
+  <text
+     x="287.88135"
+     y="118.39278"
+     font-family="Inter, sans-serif"
+     font-size="8px"
+     font-weight="700"
+     fill="#0284c7"
+     id="text16">V− = −15V</text>
+  <!-- ===== Rf1 feedback resistor (top routing) ===== -->
+  <!-- from opamp1 output (340, 110) up to (340, 30), then left to (240, 30), then down to (240, 70) -->
+  <line
+     x1="359.80313"
+     y1="175.83682"
+     x2="359.80313"
+     y2="66.474609"
+     stroke="#334155"
+     stroke-width="1.63688"
+     id="line17" />
+  <line
+     x1="359.43008"
+     y1="66.392776"
+     x2="312.31821"
+     y2="66.392776"
+     stroke="#334155"
+     stroke-width="1.35896"
+     id="line18" />
+  <line
+     x1="261.50662"
+     y1="65.460098"
+     x2="215.83876"
+     y2="65.460098"
+     stroke="#334155"
+     stroke-width="1.33797"
+     id="line18-8" />
+  <line
+     x1="250.70517"
+     y1="210.87201"
+     x2="223.80986"
+     y2="210.87201"
+     stroke="#334155"
+     stroke-width="1.02679"
+     id="line18-7-9" />
+  <!-- Rf1 zigzag from (290, 30) to (240, 30) - going left, but we'll draw left-to-right and the path looks the same -->
+  <polyline
+     points="240,30 250,30 258,22 266,38 274,22 282,38 290,30"
+     fill="none"
+     stroke="#334155"
+     stroke-width="1.4"
+     stroke-linecap="round"
+     id="polyline18"
+     transform="translate(22.06065,35.504693)" />
+  <text
+     x="325.49387"
+     y="50.504692"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="10px"
+     font-weight="700"
+     fill="#0f172a"
+     id="text18">Rf-1</text>
+  <text
+     x="268.74844"
+     y="84.307045"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="10px"
+     font-weight="700"
+     fill="#0f172a"
+     id="text18-9">C1</text>
+  <text
+     x="325.98242"
+     y="60.094345"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="8.5px"
+     fill="#64748b"
+     id="rf1-label-4-1">1 kΩ</text>
+  <text
+     x="267.24133"
+     y="93.710297"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="8.5px"
+     fill="#64748b"
+     id="rf1-label-4-1-3">10 mF</text>
+  <!-- continue down from (240, 30) to (240, 70) -->
+  <line
+     x1="215.36992"
+     y1="64.623833"
+     x2="215.36992"
+     y2="134.94873"
+     stroke="#334155"
+     stroke-width="1.85632"
+     id="line19" />
+  <!-- ===== wire from opamp1 output (340, 110) to R2 ===== -->
+  <line
+     x1="340.88135"
+     y1="176.39278"
+     x2="386.76584"
+     y2="176.39278"
+     stroke="#334155"
+     stroke-width="1.73141"
+     id="line20" />
+  <!-- Vout1 voltmeter (intermediate output) -->
+  <g
+     id="g37"
+     transform="translate(16,40)">
+    <rect
+       x="370.88135"
+       y="121.39278"
+       width="35"
+       height="30"
+       fill="#ffffff"
+       stroke="#0891b2"
+       stroke-width="1.4"
+       id="rect20" />
+    <text
+       x="387.88135"
+       y="141.39278"
+       text-anchor="middle"
+       font-family="Inter, sans-serif"
+       font-size="11px"
+       font-weight="700"
+       fill="#0891b2"
+       id="text20">V1</text>
+    <text
+       x="387.88135"
+       y="131.39278"
+       text-anchor="middle"
+       font-family="Inter, sans-serif"
+       font-size="6px"
+       fill="#64748b"
+       id="text21">Vout1</text>
+  </g>
+  <!-- wire from V1 voltmeter to R2 -->
+  <line
+     x1="421.28448"
+     y1="176.39278"
+     x2="440.88135"
+     y2="176.39278"
+     stroke="#334155"
+     stroke-width="1.04758"
+     id="line21" />
+  <!-- bend down then right to align R2 at y=110 -->
+  <!-- Actually keep at y=110 for straight horizontal flow -->
+  <!-- ===== R2 zigzag (input resistor of opamp 2) ===== -->
+  <polyline
+     points="440,110 450,110 458,102 466,118 474,102 482,118 490,102 498,118 506,102 514,118 522,102 530,110 540,110"
+     fill="none"
+     stroke="#334155"
+     stroke-width="1.4"
+     stroke-linecap="round"
+     id="polyline21"
+     transform="translate(0.88134778,66.39278)" />
+  <text
+     x="490.88135"
+     y="158.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="10px"
+     font-weight="700"
+     fill="#0f172a"
+     id="text22">R2</text>
+  <text
+     x="490.88135"
+     y="198.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="8.5px"
+     fill="#64748b"
+     id="r2-label-4-1">1 kΩ</text>
+  <!-- wire from R2 to opamp2 inverting input -->
+  <line
+     x1="540.88135"
+     y1="176.39278"
+     x2="590.88135"
+     y2="176.39278"
+     stroke="#334155"
+     stroke-width="1.4"
+     id="line22" />
+  <!-- ===== Op-Amp 2 triangle ===== -->
+  <polygon
+     points="680,150 590,95 590,205 "
+     fill="#ffffff"
+     stroke="#0891b2"
+     stroke-width="1.8"
+     id="polygon22"
+     transform="translate(0.88134778,66.39278)" />
+  <text
+     x="598.88135"
+     y="181.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="14px"
+     font-weight="700"
+     fill="#dc2626"
+     id="text23">−</text>
+  <text
+     x="598.88135"
+     y="258.39276"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="14px"
+     font-weight="700"
+     fill="#0891b2"
+     id="text24">+</text>
+  <text
+     x="635.88135"
+     y="219.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="8.5px"
+     font-weight="700"
+     fill="#64748b"
+     id="text25">OP-AMP 2</text>
+  <!-- junction dot at opamp2 inverting input bus -->
+  <circle
+     cx="580.88135"
+     cy="176.39278"
+     r="3.5"
+     fill="#1e3a5f"
+     id="circle25" />
+  <!-- ===== non-inverting input 2 to ground (below op-amp 2) ===== -->
+  <g
+     id="g38"
+     transform="translate(-6)">
+    <line
+       x1="570.88135"
+       y1="257.39276"
+       x2="570.88135"
+       y2="272.39276"
+       stroke="#334155"
+       stroke-width="1.4"
+       id="line25" />
+    <line
+       x1="562.88135"
+       y1="272.39276"
+       x2="578.88135"
+       y2="272.39276"
+       stroke="#334155"
+       stroke-width="1.4"
+       id="line26" />
+    <line
+       x1="565.88135"
+       y1="276.39276"
+       x2="575.88135"
+       y2="276.39276"
+       stroke="#334155"
+       stroke-width="1.2"
+       id="line27" />
+    <line
+       x1="568.88135"
+       y1="280.39276"
+       x2="572.88135"
+       y2="280.39276"
+       stroke="#334155"
+       stroke-width="1"
+       id="line28" />
+  </g>
+  <!-- ===== V+ and V- supply pins for opamp 2 ===== -->
+  <line
+     x1="640.88135"
+     y1="240.39278"
+     x2="640.88135"
+     y2="277.39276"
+     stroke="#0891b2"
+     stroke-width="1.2"
+     id="line29" />
+  <text
+     x="629.88135"
+     y="286.39276"
+     font-family="Inter, sans-serif"
+     font-size="8px"
+     font-weight="700"
+     fill="#0891b2"
+     id="text29">V+ = +15V</text>
+  <line
+     x1="640.88135"
+     y1="194.39278"
+     x2="640.88135"
+     y2="157.39278"
+     stroke="#0284c7"
+     stroke-width="1.2"
+     id="line30" />
+  <text
+     x="623.33264"
+     y="150.5083"
+     font-family="Inter, sans-serif"
+     font-size="8px"
+     font-weight="700"
+     fill="#0284c7"
+     id="text30">V− = −15V</text>
+  <!-- ===== Rf2 feedback resistor (top routing) ===== -->
+  <line
+     x1="692.88135"
+     y1="216.39278"
+     x2="692.88135"
+     y2="116.39278"
+     stroke="#334155"
+     stroke-width="1.4"
+     id="line31" />
+  <line
+     x1="690.88135"
+     y1="116.39278"
+     x2="657.24719"
+     y2="116.39278"
+     stroke="#334155"
+     stroke-width="1.14824"
+     id="line32" />
+  <line
+     x1="605.25201"
+     y1="116.48267"
+     x2="581.01807"
+     y2="116.48267"
+     stroke="#334155"
+     stroke-width="0.974663"
+     id="line32-5" />
+  <!-- Rf2 zigzag from (630, 50) to (580, 50) -->
+  <polyline
+     points="580,50 590,50 598,42 606,58 614,42 622,58 630,50"
+     fill="none"
+     stroke="#334155"
+     stroke-width="1.4"
+     stroke-linecap="round"
+     id="polyline32"
+     transform="translate(26.881348,66.39278)" />
+  <text
+     x="629.88135"
+     y="83.582909"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="10px"
+     font-weight="700"
+     fill="#0f172a"
+     id="text32">Rf-2</text>
+  <text
+     x="627.95593"
+     y="95.40361"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="8.5px"
+     fill="#64748b"
+     id="rf2-label-4-1">1 kΩ</text>
+  <line
+     x1="580.88135"
+     y1="116.39278"
+     x2="580.88135"
+     y2="176.39278"
+     stroke="#334155"
+     stroke-width="1.4"
+     id="line33" />
+  <!-- ===== output wire to Vout voltmeter ===== -->
+  <line
+     x1="680.88135"
+     y1="216.39278"
+     x2="720.88135"
+     y2="216.39278"
+     stroke="#334155"
+     stroke-width="1.4"
+     id="line34" />
+  <rect
+     x="720.88135"
+     y="191.39278"
+     width="40"
+     height="50"
+     fill="#ffffff"
+     stroke="#0891b2"
+     stroke-width="1.4"
+     id="rect34" />
+  <text
+     x="740.88135"
+     y="220.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="14px"
+     font-weight="700"
+     fill="#0891b2"
+     id="text34">V</text>
+  <text
+     x="740.88135"
+     y="204.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="6.5px"
+     fill="#64748b"
+     id="text35">Vout2</text>
+  <!-- ===== Labels showing intermediate and final outputs ===== -->
+  <text
+     x="403.88135"
+     y="151.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="8px"
+     fill="#64748b"
+     id="text36">Vout1 (intermediate)</text>
+  <text
+     x="740.88135"
+     y="181.39278"
+     text-anchor="middle"
+     font-family="Inter, sans-serif"
+     font-size="8px"
+     fill="#64748b"
+     id="text37">Vout2 (final)</text>
+  <line
+     x1="590.89532"
+     y1="256.5134"
+     x2="564"
+     y2="256.5134"
+     stroke="#334155"
+     stroke-width="1.02679"
+     id="line18-7-9-2" />
+  <circle
+     cx="693.93079"
+     cy="216.68652"
+     r="3.5"
+     fill="#1e3a5f"
+     id="circle11-9-7" />
+  <line
+     x1="283.47775"
+     y1="98.021545"
+     x2="213.74248"
+     y2="98.021545"
+     stroke="#334155"
+     stroke-width="1.65336"
+     id="line18-8-3" />
+  <line
+     x1="358.66788"
+     y1="97.668991"
+     x2="296.15283"
+     y2="97.668991"
+     stroke="#334155"
+     stroke-width="1.56543"
+     id="line18-8-3-6" />
+  <g
+     id="g39"
+     transform="translate(-146,32)">
+    <line
+       x1="429.83392"
+       y1="74.028801"
+       x2="429.83392"
+       y2="54.728104"
+       stroke="#334155"
+       stroke-width="0.869816"
+       id="line18-8-3-6-1"
+       style="stroke-width:1.97;stroke-dasharray:none" />
+    <line
+       x1="438.94696"
+       y1="73.950516"
+       x2="438.94696"
+       y2="54.649818"
+       stroke="#334155"
+       stroke-width="0.869816"
+       id="line18-8-3-6-1-2"
+       style="stroke-width:1.97;stroke-dasharray:none" />
+  </g>
+</svg>
+
+      </div>
+
+      <!-- INPUT PANELS -->
+      <div class="panels-grid">
+        <div class="panel opamp1">
+          <h3>OP-AMP 1 (Kiri) — Integrator</h3>
+          <div class="panel-sub">Penguat integral (Rf-1 ‖ C1 sebagai feedback)</div>
+          <div class="input-row">
+            <label class="eq">Vin</label>
+            <input type="number" id="Vin-4-2" value="5" step="0.1" min="-100" max="100">
+            <span class="unit">Volt</span>
+          </div>
+          <div class="input-row">
+            <label class="eq">R1</label>
+            <input type="number" id="R1-4-2" value="1" step="0.1" min="0.001" max="1000">
+            <span class="unit">kΩ</span>
+          </div>
+          <div class="input-row">
+            <label class="eq">Rf-1</label>
+            <input type="number" id="Rf1-4-2" value="1" step="0.1" min="0.001" max="1000">
+            <span class="unit">kΩ</span>
+          </div>
+          <div class="input-row">
+            <label class="eq">C1</label>
+            <input type="number" id="C1-4-2" value="10" step="0.1" min="0.001" max="1000">
+            <span class="unit">mF</span>
+          </div>
+        </div>
+        <div class="panel opamp2">
+          <h3>OP-AMP 2 (Kanan) — Proporsional</h3>
+          <div class="panel-sub">Penguat proporsional inverting</div>
+          <div class="input-row">
+            <label class="eq">R2</label>
+            <input type="number" id="R2-4-2" value="1" step="0.1" min="0.001" max="1000">
+            <span class="unit">kΩ</span>
+          </div>
+          <div class="input-row">
+            <label class="eq">Rf-2</label>
+            <input type="number" id="Rf2-4-2" value="1" step="0.1" min="0.001" max="1000">
+            <span class="unit">kΩ</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIGITAL VOUT DISPLAYS -->
+      <div class="vout-display-grid">
+        <div class="vout-display" data-caption="VOUT1 — INTEGRATOR OUTPUT">
+          <div class="vout-label">Vout1 =</div>
+          <div class="vout-value mono" id="vout1-4-2">0.000</div>
+          <div class="vout-status">
+            <div class="status-label">STATUS</div>
+            <div class="status-badge normal" id="status1-4-2">NORMAL</div>
+          </div>
+        </div>
+        <div class="vout-display" data-caption="VOUT2 — FINAL OUTPUT">
+          <div class="vout-label">Vout2 =</div>
+          <div class="vout-value mono" id="vout2-4-2">0.000</div>
+          <div class="vout-status">
+            <div class="status-label">STATUS</div>
+            <div class="status-badge normal" id="status2-4-2">NORMAL</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CALC BREAKDOWN -->
+      <div class="calc-breakdown" id="calc-4-2">
+        <div class="step"><b>Op-Amp 1 (practical integrator):</b> τ = Rf-1 × C1 = <span class="val">10.0 s</span></div>
+        <div class="step"><b>Vout1(t):</b> = −(Rf-1/R1) × Vin × (1 − e^(−t/τ)) = <span class="val">0.000 V</span> (at t=0)</div>
+        <div class="step"><b>Op-Amp 2 (inverting proportional):</b> Vout2 = −(Rf-2/R2) × Vout1 = <span class="val">0.000 V</span></div>
+        <div class="step"><b>Catatan:</b> Pada t→∞, Vout1 → −(Rf-1/R1)×Vin (steady state, cap open). Vout2 = (Rf-1·Rf-2)/(R1·R2) × Vin.</div>
+      </div>
+
+      <div class="note">
+        <b>Cara pakai:</b> Set nilai Vin, R1, Rf-1, C1 (op-amp 1 integrator) dan R2, Rf-2 (op-amp 2 proporsional). Tekan <b>Start</b> untuk menjalankan waktu simulasi — Vout1 akan tumbuh secara eksponensial menuju nilai steady-state. Tekan <b>Pause</b> untuk mencatat nilai Vout1 dan Vout2 pada detik tertentu. Tekan <b>Step +1s</b> untuk maju 1 detik manual. Default: Rf-1=1kΩ, C1=10mF → τ=10s. Pada t=15s, Vout1 ≈ −3.88V, Vout2 ≈ +3.88V. Supply Op-Amp V+ = +15V, V− = −15V (saturasi pada ±15V).
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="app-footer">
+    Simulator Op-Amp Integrator · Modul Praktikum OP-Amp Simulide · Percobaan 4<br>
+    Single-file HTML simulator · Buka di browser modern (Chrome, Firefox, Edge, Safari)
+  </footer>
+</div>
+
+<!-- Toast notification -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ CONSTANTS ============
+var SUPPLY_LIMIT = 15;  // ±15V saturation
+var MAX_TIME = 99;      // max simulation time in seconds (allow more than 15 for exploration)
+
+// ============ HELPERS ============
+function fmt3(value) {
+  if (!isFinite(value)) return '---.---';
+  var sign = value < 0 ? '-' : (value > 0 ? '+' : ' ');
+  var abs = Math.abs(value);
+  var intPart = Math.floor(abs);
+  var fracPart = Math.round((abs - intPart) * 1000);
+  if (fracPart >= 1000) { intPart += 1; fracPart -= 1000; }
+  var fracStr = String(fracPart);
+  while (fracStr.length < 3) { fracStr = '0' + fracStr; }
+  return sign + intPart + '.' + fracStr;
+}
+
+function fmtTime(seconds) {
+  var s = Math.max(0, Math.floor(seconds));
+  var hh = Math.floor(s / 3600);
+  var mm = Math.floor((s % 3600) / 60);
+  var ss = s % 60;
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  return pad(hh) + ':' + pad(mm) + ':' + pad(ss);
+}
+
+function parseNum(id) {
+  var el = document.getElementById(id);
+  if (!el) return NaN;
+  var raw = el.value;
+  if (typeof raw === 'string') {
+    raw = raw.replace(',', '.').trim();
+  }
+  var n = parseFloat(raw);
+  return isNaN(n) ? NaN : n;
+}
+
+function setFieldValue(id, value) {
+  var el = document.getElementById(id);
+  if (el) el.value = value;
+}
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function() { t.classList.remove('show'); }, 1800);
+}
+
+function clampSat(value) {
+  var clamped = value;
+  var saturated = false;
+  if (value > SUPPLY_LIMIT) { clamped = SUPPLY_LIMIT; saturated = true; }
+  else if (value < -SUPPLY_LIMIT) { clamped = -SUPPLY_LIMIT; saturated = true; }
+  return { value: clamped, saturated: saturated, raw: value };
+}
+
+function updateStatusBadge(badgeId, saturated, clampedValue, isInputErr, isDivZero) {
+  var badge = document.getElementById(badgeId);
+  if (!badge) return;
+  if (isInputErr) {
+    badge.textContent = 'INPUT ERR';
+    badge.className = 'status-badge error';
+  } else if (isDivZero) {
+    badge.textContent = 'DIV ZERO';
+    badge.className = 'status-badge error';
+  } else if (saturated) {
+    if (clampedValue >= SUPPLY_LIMIT) {
+      badge.textContent = 'SAT+ (+15V)';
+      badge.className = 'status-badge sat-pos';
+    } else {
+      badge.textContent = 'SAT− (−15V)';
+      badge.className = 'status-badge sat-neg';
+    }
+  } else {
+    badge.textContent = 'NORMAL';
+    badge.className = 'status-badge normal';
+  }
+}
+
+function updateDisplay(valueId, value, saturated, isErr) {
+  var el = document.getElementById(valueId);
+  if (!el) return;
+  if (isErr) {
+    el.textContent = '---.---';
+    el.style.color = 'var(--amber)';
+  } else {
+    el.textContent = fmt3(value);
+    el.style.color = saturated ? 'var(--amber)' : 'var(--led-red)';
+  }
+}
+
+// ============ PERCOBAAN 4.1: TWO PROPORTIONAL OP-AMPS ============
+// Vout1 = -(Rf1/R1) * Vin  (constant over time)
+// Vout2 = -(Rf2/R2) * Vout1  (constant over time)
+
+var sim41 = {
+  time: 0,
+  running: false,
+  intervalId: null,
+};
+
+function recalc_4_1() {
+  var Vin = parseNum('Vin-4-1');
+  var R1 = parseNum('R1-4-1');
+  var Rf1 = parseNum('Rf1-4-1');
+  var R2 = parseNum('R2-4-1');
+  var Rf2 = parseNum('Rf2-4-1');
+
+  // Update circuit labels
+  updateCircuitLabels_4_1(Vin, R1, Rf1, R2, Rf2);
+
+  // Check for invalid inputs
+  var inputs = [Vin, R1, Rf1, R2, Rf2];
+  var inputErr = false;
+  for (var i = 0; i < inputs.length; i++) {
+    if (isNaN(inputs[i])) { inputErr = true; break; }
+  }
+  if (inputErr) {
+    updateDisplay('vout1-4-1', 0, false, true);
+    updateDisplay('vout2-4-1', 0, false, true);
+    updateStatusBadge('status1-4-1', false, 0, true, false);
+    updateStatusBadge('status2-4-1', false, 0, true, false);
+    document.getElementById('calc-4-1').innerHTML =
+      '<div class="step"><span style="color:#d97706">⚠ Salah satu input tidak valid. Isi semua field dengan angka.</span></div>';
+    return;
+  }
+
+  // Check for zero resistors
+  var divZero = (R1 === 0 || Rf1 === 0 || R2 === 0 || Rf2 === 0);
+  if (divZero) {
+    updateDisplay('vout1-4-1', 0, false, true);
+    updateDisplay('vout2-4-1', 0, false, true);
+    updateStatusBadge('status1-4-1', false, 0, false, true);
+    updateStatusBadge('status2-4-1', false, 0, false, true);
+    document.getElementById('calc-4-1').innerHTML =
+      '<div class="step"><span style="color:#d97706">⚠ Salah satu resistor = 0 — pembagian oleh nol tidak terdefinisi.</span></div>';
+    return;
+  }
+
+  // Calculate Vout1 = -(Rf1/R1) * Vin
+  var a1 = Rf1 / R1;
+  var rawVout1 = -(a1 * Vin);
+  var sat1 = clampSat(rawVout1);
+
+  // Calculate Vout2 = -(Rf2/R2) * Vout1 (using clamped Vout1)
+  var a2 = Rf2 / R2;
+  var rawVout2 = -(a2 * sat1.value);
+  var sat2 = clampSat(rawVout2);
+
+  // Update displays
+  updateDisplay('vout1-4-1', sat1.value, sat1.saturated, false);
+  updateDisplay('vout2-4-1', sat2.value, sat2.saturated, false);
+  updateStatusBadge('status1-4-1', sat1.saturated, sat1.value, false, false);
+  updateStatusBadge('status2-4-1', sat2.saturated, sat2.value, false, false);
+
+  // Update calculation breakdown
+  var html =
+    '<div class="step"><b>Op-Amp 1 (inverting proportional):</b> Vout1 = −(Rf-1/R1) × Vin = −(' + a1.toFixed(3) + ') × ' + Vin + ' = <span class="val">' + fmt3(sat1.value) + ' V</span>' +
+      (sat1.saturated ? ' <span style="color:#d97706">(raw ' + rawVout1.toFixed(3) + 'V saturasi)</span>' : '') + '</div>' +
+    '<div class="step"><b>Op-Amp 2 (inverting proportional):</b> Vout2 = −(Rf-2/R2) × Vout1 = −(' + a2.toFixed(3) + ') × ' + fmt3(sat1.value) + ' = <span class="val">' + fmt3(sat2.value) + ' V</span>' +
+      (sat2.saturated ? ' <span style="color:#d97706">(raw ' + rawVout2.toFixed(3) + 'V saturasi)</span>' : '') + '</div>' +
+    '<div class="step"><b>Waktu simulasi:</b> t = ' + sim41.time + ' s — Vout1 dan Vout2 <b>konstan</b> terhadap waktu karena kedua op-amp proporsional murni (tidak ada komponen reaktif).</div>';
+  document.getElementById('calc-4-1').innerHTML = html;
+}
+
+function updateCircuitLabels_4_1(Vin, R1, Rf1, R2, Rf2) {
+  function fmtV(v) { return isFinite(v) ? v + 'V' : '?'; }
+  function fmtR(v) { return isFinite(v) ? v + ' kΩ' : '?'; }
+  var el;
+  el = document.getElementById('vin1-label-4-1'); if (el) el.textContent = fmtV(Vin);
+  el = document.getElementById('r1-label-4-1'); if (el) el.textContent = fmtR(R1);
+  el = document.getElementById('rf1-label-4-1'); if (el) el.textContent = fmtR(Rf1);
+  el = document.getElementById('r2-label-4-1'); if (el) el.textContent = fmtR(R2);
+  el = document.getElementById('rf2-label-4-1'); if (el) el.textContent = fmtR(Rf2);
+}
+
+// ============ PERCOBAAN 4.2: INTEGRATOR + PROPORTIONAL ============
+// Vout1(t) = -(Rf1/R1) * Vin * (1 - exp(-t/τ)),  where τ = Rf1 * C1 (with R1 in kΩ, C1 in mF → τ in seconds)
+// Vout2(t) = -(Rf2/R2) * Vout1(t)
+
+var sim42 = {
+  time: 0,
+  running: false,
+  intervalId: null,
+};
+
+function recalc_4_2() {
+  var Vin = parseNum('Vin-4-2');
+  var R1 = parseNum('R1-4-2');
+  var Rf1 = parseNum('Rf1-4-2');
+  var C1 = parseNum('C1-4-2');  // in mF
+  var R2 = parseNum('R2-4-2');
+  var Rf2 = parseNum('Rf2-4-2');
+
+  updateCircuitLabels_4_2(Vin, R1, Rf1, C1, R2, Rf2);
+
+  var inputs = [Vin, R1, Rf1, C1, R2, Rf2];
+  var inputErr = false;
+  for (var i = 0; i < inputs.length; i++) {
+    if (isNaN(inputs[i])) { inputErr = true; break; }
+  }
+  if (inputErr) {
+    updateDisplay('vout1-4-2', 0, false, true);
+    updateDisplay('vout2-4-2', 0, false, true);
+    updateStatusBadge('status1-4-2', false, 0, true, false);
+    updateStatusBadge('status2-4-2', false, 0, true, false);
+    document.getElementById('calc-4-2').innerHTML =
+      '<div class="step"><span style="color:#d97706">⚠ Salah satu input tidak valid. Isi semua field dengan angka.</span></div>';
+    return;
+  }
+
+  var divZero = (R1 === 0 || Rf1 === 0 || C1 === 0 || R2 === 0 || Rf2 === 0);
+  if (divZero) {
+    updateDisplay('vout1-4-2', 0, false, true);
+    updateDisplay('vout2-4-2', 0, false, true);
+    updateStatusBadge('status1-4-2', false, 0, false, true);
+    updateStatusBadge('status2-4-2', false, 0, false, true);
+    document.getElementById('calc-4-2').innerHTML =
+      '<div class="step"><span style="color:#d97706">⚠ Salah satu nilai (R1/Rf-1/C1/R2/Rf-2) = 0 — tidak terdefinisi.</span></div>';
+    return;
+  }
+
+  // Calculate time constant τ = Rf1 (kΩ) × C1 (mF) = Rf1*1000 (Ω) × C1/1000 (F) = Rf1*C1 (s)
+  var tau = Rf1 * C1;  // in seconds (because Rf1 in kΩ and C1 in mF cancel out)
+  var a1 = Rf1 / R1;   // DC gain of op-amp 1
+  var a2 = Rf2 / R2;   // gain of op-amp 2
+
+  // Vout1(t) = -a1 * Vin * (1 - exp(-t/tau))
+  // At t=0: Vout1 = 0
+  // At t→∞: Vout1 = -a1 * Vin
+  var t = sim42.time;
+  var rawVout1;
+  if (tau > 0 && t > 0) {
+    rawVout1 = -(a1 * Vin) * (1 - Math.exp(-t / tau));
+  } else {
+    rawVout1 = 0;  // at t=0
+  }
+  var sat1 = clampSat(rawVout1);
+
+  // Vout2(t) = -a2 * Vout1(t)
+  var rawVout2 = -(a2 * sat1.value);
+  var sat2 = clampSat(rawVout2);
+
+  updateDisplay('vout1-4-2', sat1.value, sat1.saturated, false);
+  updateDisplay('vout2-4-2', sat2.value, sat2.saturated, false);
+  updateStatusBadge('status1-4-2', sat1.saturated, sat1.value, false, false);
+  updateStatusBadge('status2-4-2', sat2.saturated, sat2.value, false, false);
+
+  // Calc breakdown
+  var steadyStateVout1 = -(a1 * Vin);
+  var steadyStateVout2 = -(a2 * steadyStateVout1);
+  var html =
+    '<div class="step"><b>Op-Amp 1 (practical integrator):</b> τ = Rf-1 × C1 = ' + Rf1 + ' kΩ × ' + C1 + ' mF = <span class="val">' + tau.toFixed(3) + ' s</span></div>' +
+    '<div class="step"><b>Vout1(t):</b> = −(Rf-1/R1) × Vin × (1 − e^(−t/τ)) = −' + a1.toFixed(3) + ' × ' + Vin + ' × (1 − e^(−' + t + '/' + tau.toFixed(3) + ')) = <span class="val">' + fmt3(sat1.value) + ' V</span>' +
+      (sat1.saturated ? ' <span style="color:#d97706">(raw ' + rawVout1.toFixed(3) + 'V saturasi)</span>' : '') + '</div>' +
+    '<div class="step"><b>Op-Amp 2 (inverting proportional):</b> Vout2 = −(Rf-2/R2) × Vout1 = −' + a2.toFixed(3) + ' × ' + fmt3(sat1.value) + ' = <span class="val">' + fmt3(sat2.value) + ' V</span>' +
+      (sat2.saturated ? ' <span style="color:#d97706">(raw ' + rawVout2.toFixed(3) + 'V saturasi)</span>' : '') + '</div>' +
+    '<div class="step"><b>Steady-state (t→∞):</b> Vout1 → ' + fmt3(steadyStateVout1) + ' V, Vout2 → ' + fmt3(steadyStateVout2) + ' V (cap C1 open, hanya Rf-1 yang feedback)</div>' +
+    '<div class="step"><b>Waktu simulasi saat ini:</b> t = ' + t + ' s</div>';
+  document.getElementById('calc-4-2').innerHTML = html;
+}
+
+function updateCircuitLabels_4_2(Vin, R1, Rf1, C1, R2, Rf2) {
+  function fmtV(v) { return isFinite(v) ? v + 'V' : '?'; }
+  function fmtR(v) { return isFinite(v) ? v + ' kΩ' : '?'; }
+  function fmtC(v) { return isFinite(v) ? v + ' mF' : '?'; }
+  var el;
+  el = document.getElementById('vin1-label-4-2'); if (el) el.textContent = fmtV(Vin);
+  el = document.getElementById('r1-label-4-2'); if (el) el.textContent = fmtR(R1);
+  el = document.getElementById('rf1-label-4-2'); if (el) el.textContent = fmtR(Rf1);
+  el = document.getElementById('c1-label-4-2'); if (el) el.textContent = fmtC(C1);
+  el = document.getElementById('r2-label-4-2'); if (el) el.textContent = fmtR(R2);
+  el = document.getElementById('rf2-label-4-2'); if (el) el.textContent = fmtR(Rf2);
+}
+
+// ============ TIME CONTROL ============
+function updateTimeDisplay(simId, time, running) {
+  var timeEl = document.getElementById('time-' + simId);
+  if (timeEl) {
+    timeEl.textContent = fmtTime(time);
+    timeEl.className = 'time-display ' + (running ? 'running' : (time > 0 ? 'paused' : ''));
+  }
+}
+
+function startSim(simId) {
+  var sim = (simId === '4-1') ? sim41 : sim42;
+  if (sim.running) return;
+  if (sim.time >= MAX_TIME) {
+    showToast('Waktu simulasi sudah maksimal (' + MAX_TIME + 's). Reset untuk mulai ulang.');
+    return;
+  }
+  sim.running = true;
+  sim.intervalId = setInterval(function() {
+    sim.time += 1;
+    if (sim.time >= MAX_TIME) {
+      stopSim(simId);
+      showToast('Waktu simulasi mencapai maksimal (' + MAX_TIME + 's). Otomatis berhenti.');
+    }
+    updateTimeDisplay(simId, sim.time, sim.running);
+    if (simId === '4-1') recalc_4_1(); else recalc_4_2();
+  }, 1000);
+  updateTimeDisplay(simId, sim.time, sim.running);
+  updateButtons(simId);
+  showToast('Simulasi berjalan (1 detik per tick nyata)');
+}
+
+function stopSim(simId) {
+  var sim = (simId === '4-1') ? sim41 : sim42;
+  sim.running = false;
+  if (sim.intervalId) {
+    clearInterval(sim.intervalId);
+    sim.intervalId = null;
+  }
+  updateTimeDisplay(simId, sim.time, sim.running);
+  updateButtons(simId);
+}
+
+function stepSim(simId) {
+  var sim = (simId === '4-1') ? sim41 : sim42;
+  if (sim.running) return;  // pause first if running
+  if (sim.time >= MAX_TIME) {
+    showToast('Waktu simulasi sudah maksimal. Reset untuk mulai ulang.');
+    return;
+  }
+  sim.time += 1;
+  updateTimeDisplay(simId, sim.time, sim.running);
+  if (simId === '4-1') recalc_4_1(); else recalc_4_2();
+}
+
+function resetSim(simId) {
+  var sim = (simId === '4-1') ? sim41 : sim42;
+  stopSim(simId);
+  sim.time = 0;
+  updateTimeDisplay(simId, sim.time, sim.running);
+  if (simId === '4-1') recalc_4_1(); else recalc_4_2();
+  showToast('Simulasi di-reset ke t=0');
+}
+
+function updateButtons(simId) {
+  var sim = (simId === '4-1') ? sim41 : sim42;
+  var startBtn = document.getElementById('start-' + simId);
+  var pauseBtn = document.getElementById('pause-' + simId);
+  if (startBtn) startBtn.disabled = sim.running;
+  if (pauseBtn) pauseBtn.disabled = !sim.running;
+}
+
+// ============ TAB SWITCHING ============
+function initTabs() {
+  var tabBtns = document.querySelectorAll('.tab-btn');
+  var tabPanels = document.querySelectorAll('.tab-panel');
+  tabBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var targetId = btn.dataset.tab;
+      tabBtns.forEach(function(b) { b.classList.remove('active'); });
+      tabPanels.forEach(function(p) { p.classList.remove('active'); });
+      btn.classList.add('active');
+      var target = document.getElementById(targetId);
+      if (target) target.classList.add('active');
+      // Recalculate the visible simulator
+      if (targetId === 'tab-4-1') recalc_4_1();
+      else recalc_4_2();
+    });
+  });
+}
+
+// ============ INIT ============
+function init() {
+  initTabs();
+
+  // Input listeners for 4.1
+  ['Vin-4-1', 'R1-4-1', 'Rf1-4-1', 'R2-4-1', 'Rf2-4-1'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', recalc_4_1);
+      el.addEventListener('change', recalc_4_1);
+    }
+  });
+
+  // Input listeners for 4.2
+  ['Vin-4-2', 'R1-4-2', 'Rf1-4-2', 'C1-4-2', 'R2-4-2', 'Rf2-4-2'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', recalc_4_2);
+      el.addEventListener('change', recalc_4_2);
+    }
+  });
+
+  // Time control buttons for 4.1
+  document.getElementById('start-4-1').addEventListener('click', function() { startSim('4-1'); });
+  document.getElementById('pause-4-1').addEventListener('click', function() { stopSim('4-1'); showToast('Simulasi di-pause pada t=' + sim41.time + 's'); });
+  document.getElementById('step-4-1').addEventListener('click', function() { stepSim('4-1'); });
+  document.getElementById('reset-4-1').addEventListener('click', function() { resetSim('4-1'); });
+
+  // Time control buttons for 4.2
+  document.getElementById('start-4-2').addEventListener('click', function() { startSim('4-2'); });
+  document.getElementById('pause-4-2').addEventListener('click', function() { stopSim('4-2'); showToast('Simulasi di-pause pada t=' + sim42.time + 's'); });
+  document.getElementById('step-4-2').addEventListener('click', function() { stepSim('4-2'); });
+  document.getElementById('reset-4-2').addEventListener('click', function() { resetSim('4-2'); });
+
+  // Initial calculation
+  recalc_4_1();
+  recalc_4_2();
+  updateTimeDisplay('4-1', 0, false);
+  updateTimeDisplay('4-2', 0, false);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+</script>
+</body>
+</html>
